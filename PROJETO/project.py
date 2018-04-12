@@ -28,8 +28,8 @@ def removePunctuation(text):
 import os.path
 
 # Read CSV file into a RDD
-arquivo = os.path.join('Data', 'evals_table.csv')
-evalsRDD = sc.textFile(arquivo, 8)
+file = os.path.join('Data', 'evals_table.csv')
+evalsRDD = sc.textFile(file, 4)
 
 # Extract header by filtering it out
 header = evalsRDD.first()
@@ -40,12 +40,12 @@ evalsFormatedRDD = (
                      .map(removePunctuation)
                      .map(lambda x: x.split())
                      .map(lambda x: (x[0], (x[1], x[2])))
-                     .groupByKey(8)
+                     .groupByKey(4)
                      .mapValues(dict)
                    )
 
 evalsDict = dict(evalsFormatedRDD.collect())
 evalsNumKeys = len(evalsDict)
-print (evalsDict)
-print (evalsNumKeys)
+#print (evalsDict)
+#Sprint (evalsNumKeys)
 
