@@ -22,7 +22,7 @@ def removePunctuation(text):
     return re.sub(r'[^A-Za-z0-9 ]', ' ', text).strip()
 
 
-# In[2]:
+# In[5]:
 
 
 import os.path
@@ -42,9 +42,11 @@ evalsFormatedRDD = (
     .map(lambda x: (x[0], (x[1], int(x[2]))))
     .groupByKey(4)
     .mapValues(dict)
+    #.map(lambda x: dict({x[0]: x[1]}))
 )
 
 evalsDict = dict(evalsFormatedRDD.take(1000))
+id = next(iter(evalsDict)) 
 #evalsNumKeys = len(evalsDict)
 #print (evalsDict)
 #print (evalsNumKeys)
@@ -91,7 +93,6 @@ class RecommendationSystem:
             for j in ratings:
                 ratings[j] /= self.freqs[i][j]
         
-        
     def slopeOne(self, userRatings):
         """
         Slope One Recommender: For every item rated by the user and every item user didnt rate, we calculate the
@@ -100,29 +101,29 @@ class RecommendationSystem:
         :type userRatings: dict
         :return: The recommendation result, a list of tuples 
         """
-        recommendations = {}
+        recs = {}
         freqs = {}
 
-        for (userItem, userRating) in userRatings.items():
-            for (diffItem, diffRatings) in self.devs.items():
-                if diffItem not in userRatings and userItem in self.devs[diffItem]:
-                    auxFreq = self.freqs[diffItem][userItem]
-                    recommendations.setdefault(diffItem, 0.0)
-                    freqs.setdefault(diffItem, 0)
-                    recommendations[diffItem] += (diffRatings[userItem] + userRating) * auxFreq
-                    freqs[diffItem] += auxFreq
+        for (i, first) in userRatings.items():
+            for (j, second) in self.devs.items():
+                if j not in userRatings and i in self.devs[j]:
+                    auxFreq = self.freqs[j][i]
+                    recs.setdefault(j, 0.0)
+                    freqs.setdefault(j, 0)
+                    recs[j] += (second[i] + first) * auxFreq
+                    freqs[j] += auxFreq
 
-        recommendations = sc.parallelize([(x, y / freqs[x]) for (x, y) in recommendations.items()])
+        recommendations = sc.parallelize([(x, y / freqs[x]) for (x, y) in recs.items()])
         recommendationsSorted = recommendations.sortBy(lambda xy: xy[1], False)
 
         return recommendationsSorted
 
 
-# In[4]:
+# In[6]:
 
 
 recommendation = RecommendationSystem(evalsDict)
 recommendation.calculateDeviations()
-user = evalsDict['131168']
+user = evalsDict[id]
 recommendation.slopeOne(user).take(10)
 
