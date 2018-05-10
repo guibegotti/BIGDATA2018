@@ -28,7 +28,7 @@ def removePunctuation(text):
 import os.path
 
 # Read CSV file into a RDD
-file = os.path.join('Data', 'evals_table.csv')
+file = os.path.join('Data', 'ratings_700.csv')
 evalsRDD = sc.textFile(file, 4)
     
 # Extract header by filtering it out
@@ -44,7 +44,7 @@ evalsFormatedRDD = (
     .mapValues(dict)
 )
 
-evalsDict = dict(evalsFormatedRDD.collect())
+evalsDict = dict(evalsFormatedRDD.take(1000))
 #evalsNumKeys = len(evalsDict)
 #print (evalsDict)
 #print (evalsNumKeys)
@@ -123,6 +123,6 @@ class RecommendationSystem:
 
 recommendation = RecommendationSystem(evalsDict)
 recommendation.calculateDeviations()
-user = evalsDict['59cd8210e7f5e6dd9c6c0bc3']
+user = evalsDict['131168']
 recommendation.slopeOne(user).take(10)
 
