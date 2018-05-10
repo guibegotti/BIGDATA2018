@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 import re
@@ -22,7 +22,7 @@ def removePunctuation(text):
     return re.sub(r'[^A-Za-z0-9 ]', ' ', text).strip()
 
 
-# In[12]:
+# In[2]:
 
 
 import os.path
@@ -36,25 +36,21 @@ header = evalsRDD.first()
 evalsRDD = evalsRDD.filter(lambda row: row != header)
 
 evalsFormatedRDD = (
-                    evalsRDD
-                     .map(removePunctuation)
-                     .map(lambda x: x.split())
-                     .map(lambda x: (x[0], (x[1], int(x[2]))))
-                     .groupByKey(4)
-                     .mapValues(dict)
-                   )
+    evalsRDD
+    .map(removePunctuation)
+    .map(lambda x: x.split())
+    .map(lambda x: (x[0], (x[1], int(x[2]))))
+    .groupByKey(4)
+    .mapValues(dict)
+)
 
 evalsDict = dict(evalsFormatedRDD.collect())
-evalsNumKeys = len(evalsDict)
-print (evalsDict)
+#evalsNumKeys = len(evalsDict)
+#print (evalsDict)
 #print (evalsNumKeys)
 
 
-# In[17]:
-
-
-import codecs
-from math import sqrt
+# In[3]:
 
 
 class RecommendationSystem:
@@ -69,14 +65,14 @@ class RecommendationSystem:
         :param data: A dictionary containing a user identification and its evaluations (ranging 0-5) to items
         :type data: dict
         """
-        self.freqs = {} # Frequencies dict, needed to SlopeOne
-        self.devs = {} # Deviations dict, needed to SlopeOne
+        self.freqs = {} # Frequencies dict, needed to SlopeOne algorithm
+        self.devs = {} # Deviations dict, needed to SlopeOne algorithm
         if type(data).__name__ == 'dict': # Data need to be a dictionary 
             self.data = data
 
     def calculateDeviations(self):
         """ Deviations calculator: For each user we get their ratings for the items, them analyse each
-        one of the ratings and compute the frequencies the items are evaluated together and the 
+        one of the ratings and compute the frequencies when they are evaluated together and the 
         deviation between the evaluations
             In the end we iterate through the deviations to divide each by its frequency
         """
@@ -90,21 +86,20 @@ class RecommendationSystem:
                         self.freqs[i][j] += 1
                         self.devs[i].setdefault(j, 0.0)
                         self.devs[i][j] += first - second
-
+                        
         for (i, ratings) in self.devs.items():
             for j in ratings:
                 ratings[j] /= self.freqs[i][j]
-
+        
+        
     def slopeOne(self, userRatings):
         """
         Slope One Recommender: For every item rated by the user and every item user didnt rate, we calculate the
-        possibly rate that user could have done to the not rated items by the others ratings and item frequency
+        possible rate that user could have done to the not rated items by the others ratings and item frequency
         :param userRatings: A dictionary containing all items with evaluations that user had previous evaluated
         :type userRatings: dict
-        :return: The recommendation result, a list of tuples
-        :rtype: list
+        :return: The recommendation result, a list of tuples 
         """
-
         recommendations = {}
         freqs = {}
 
@@ -117,17 +112,17 @@ class RecommendationSystem:
                     recommendations[diffItem] += (diffRatings[userItem] + userRating) * auxFreq
                     freqs[diffItem] += auxFreq
 
-        recommendations = [(x, y / freqs[x]) for (x, y) in recommendations.items()]
-        recommendations.sort(key = lambda xy: xy[1], reverse=True)
+        recommendations = sc.parallelize([(x, y / freqs[x]) for (x, y) in recommendations.items()])
+        recommendationsSorted = recommendations.sortBy(lambda xy: xy[1], False)
 
-        return recommendations
+        return recommendationsSorted
 
 
-# In[18]:
+# In[4]:
 
 
 recommendation = RecommendationSystem(evalsDict)
 recommendation.calculateDeviations()
-user = evalsDict['59cd804fefd449dd4ea64502']
-recommendation.slopeOne(user)
+user = evalsDict['59cd8210e7f5e6dd9c6c0bc3']
+recommendation.slopeOne(user).take(10)
 
